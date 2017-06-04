@@ -6,6 +6,7 @@ use Ckryo\Laravel\Admin\Models\User;
 use Ckryo\Laravel\Auth\Auth;
 use Ckryo\Laravel\Handler\ErrorCodeException;
 use Ckryo\Laravel\Logi\Facades\Logi;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -59,7 +60,7 @@ trait ResourceControllerExpand
      * @return mixed
      */
     protected function storeValidate (Request $request, User $admin) { return null; }
-    protected function storeWith () { return []; }
+    protected function storeCustom (Request $request, User $admin) { return false; }
 
     /**
      * 修改数据时,表单验证
@@ -69,7 +70,7 @@ trait ResourceControllerExpand
      */
     protected function updateValidate (Request $request, User $admin) { return null; }
     protected function updateFillables () { return []; }
-    protected function updateWith () { return []; }
+    protected function updateCustom (array $updates, User $admin, Model $model) { return false; }
 
 
     // 资源控制器 - 查询,显示,编辑,删除
@@ -85,12 +86,12 @@ trait ResourceControllerExpand
         return '删除了'.$this->resourceDescription().':'.$data->$key;
     }
 
-    protected function getCreateMessage (Collection $data) {
+    protected function getCreateMessage (Model $data) {
         $key = $this->resourceModelNameKey();
         return '创建了'.$this->resourceDescription().':'.$data->$key;
     }
 
-    protected function getUpdateMessage (Collection $data) {
+    protected function getUpdateMessage (Model $data) {
         $key = $this->resourceModelNameKey();
         return '修改了'.$this->resourceDescription().':'.$data->$key;
     }
@@ -137,11 +138,14 @@ trait ResourceControllerExpand
         $this->storeValidate($request, $admin);
 
         DB::transaction(function () use ($request, $admin) {
-            $model_primaryKey = $this->resourceModelPrimaryKey();
+            $data = $this->storeCustom($request, $admin);
+            if (!$data) {
+                $model_primaryKey = $this->resourceModelPrimaryKey();
 
-            $fillables = $this->resourceModel()->getFillable();
-            $store_dict = array_merge($request->only($fillables), $this->storeWith());
-            $data = $this->resourceModel()->create($store_dict);
+                $fillables = $this->resourceModel()->getFillable();
+                $store_dict = array_merge($request->only($fillables), $this->storeWith());
+                $data = $this->resourceModel()->create($store_dict);
+            }
             $this->logi('create', $admin->id, $data->$model_primaryKey, $this->getCreateMessage($data), json_encode($request->all(), JSON_UNESCAPED_UNICODE));
         });
         return response()->ok('创建成功');
@@ -161,14 +165,17 @@ trait ResourceControllerExpand
         if (count($updates) === 0) return response()->ok('未修改任何数据');
 
         DB::transaction(function () use ($updates, $admin, $model, $updates) {
-            $model_primaryKey = $this->resourceModelPrimaryKey();
-            foreach ($updates as $key => $value) {
-                $model->$key = $value;
+            $update = $this->updateCustom($updates, $admin, $model);
+            if (!$update) {
+                $model_primaryKey = $this->resourceModelPrimaryKey();
+                foreach ($updates as $key => $value) {
+                    $model->$key = $value;
+                }
+                foreach ($this->updateWith() as $key => $value) {
+                    $model->$key = $value;
+                }
+                $model->save();
             }
-            foreach ($this->updateWith() as $key => $value) {
-                $model->$key = $value;
-            }
-            $model->save();
             $this->logi('update', $admin->id, $model->$model_primaryKey, $this->getUpdateMessage($model), json_encode($updates, JSON_UNESCAPED_UNICODE));
         });
         return response()->ok('操作成功');
