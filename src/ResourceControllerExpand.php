@@ -136,8 +136,8 @@ trait ResourceControllerExpand
 
         DB::transaction(function () use ($request, $admin) {
             $data = $this->storeCustom($request, $admin);
+            $model_primaryKey = $this->resourceModelPrimaryKey();
             if (!$data) {
-                $model_primaryKey = $this->resourceModelPrimaryKey();
 
                 $fillables = $this->resourceModel()->getFillable();
                 $store_dict = array_merge($request->only($fillables), $this->storeWith());
