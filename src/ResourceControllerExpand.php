@@ -161,7 +161,7 @@ trait ResourceControllerExpand
         }
         if (count($updates) === 0) return response()->ok('未修改任何数据');
 
-        DB::transaction(function () use ($updates, $admin, $model, $updates) {
+        DB::transaction(function () use ($updates, $admin, $model) {
             $update = $this->updateCustom($updates, $admin, $model);
             if (!$update) {
                 $model_primaryKey = $this->resourceModelPrimaryKey();
