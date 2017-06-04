@@ -162,8 +162,8 @@ trait ResourceControllerExpand
 
         DB::transaction(function () use ($updates, $admin, $model) {
             $update = $this->updateCustom($updates, $admin, $model);
+            $model_primaryKey = $this->resourceModelPrimaryKey();
             if (!$update) {
-                $model_primaryKey = $this->resourceModelPrimaryKey();
                 foreach ($updates as $key => $value) {
                     $model->$key = $value;
                 }
