@@ -2,8 +2,11 @@
 
 namespace Ckryo\Laravel\Expand;
 
+use Ckryo\Laravel\Admin\Models\User;
 use Ckryo\Laravel\Auth\Auth;
+use Ckryo\Laravel\Handler\ErrorCodeException;
 use Ckryo\Laravel\Logi\Facades\Logi;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -13,7 +16,9 @@ trait ResourceControllerExpand
      * 授权用户类型
      * @return string
      */
-    abstract function authKey ();
+    function authKey () {
+        return "json";
+    }
 
 
     /**
@@ -26,15 +31,13 @@ trait ResourceControllerExpand
      * 获取模型名称的key
      * @return string
      */
-    abstract function resourceModelNameKey ();
+    protected function resourceModelNameKey () { return "name"; }
 
     /**
      * 获取模型主键
      * @return string
      */
-    protected function resourceModelPrimaryKey () {
-        return 'id';
-    }
+    protected function resourceModelPrimaryKey () { return 'id'; }
 
 
     /**
@@ -49,6 +52,34 @@ trait ResourceControllerExpand
      */
     abstract function resourceDescription ();
 
+    /**
+     * 创建数据时,表单验证
+     * @param Request $request 请求数据
+     * @param User $admin 管理员
+     * @return mixed
+     */
+    protected function storeValidate (Request $request, User $admin) {
+        return null;
+    }
+
+    /**
+     * 修改数据时,表单验证
+     * @param Request $request 请求数据
+     * @param User $admin 管理员
+     * @return mixed
+     */
+    protected function updateValidate (Request $request, User $admin) {
+        return null;
+    }
+
+    /**
+     * 可编辑的数组
+     * @return array(string)
+     */
+    protected function updateFillables () {
+        return [];
+    }
+
     // 资源控制器 - 查询,显示,编辑,删除
     // 删除 , 删除单个, 删除多个
 
@@ -60,6 +91,16 @@ trait ResourceControllerExpand
     protected function getDestroyMessageWithSinge (Collection $data) {
         $key = $this->resourceModelNameKey();
         return '删除了'.$this->resourceDescription().':'.$data->$key;
+    }
+
+    protected function getCreateMessage (Collection $data) {
+        $key = $this->resourceModelNameKey();
+        return '创建了'.$this->resourceDescription().':'.$data->$key;
+    }
+
+    protected function getUpdateMessage (Collection $data) {
+        $key = $this->resourceModelNameKey();
+        return '修改了'.$this->resourceDescription().':'.$data->$key;
     }
 
 
@@ -95,6 +136,44 @@ trait ResourceControllerExpand
                 $this->logi('delete', $admin->id, $item->$model_primaryKey, $this->getDestroyMessageWithSinge($item), json_encode($item->toArray(), JSON_UNESCAPED_UNICODE));
             }
             $sql->delete();
+        });
+        return response()->ok('操作成功');
+    }
+
+    function store (Request $request, Auth $auth) {
+        $admin = $auth->user($this->authKey());
+        $this->storeValidate($request, $admin);
+
+        DB::transaction(function () use ($request, $admin) {
+            $model_primaryKey = $this->resourceModelPrimaryKey();
+
+            $fillables = $this->resourceModel()->getFillable();
+            $data = $this->resourceModel()->create($request->only($fillables));
+            $this->logi('create', $admin->id, $data->$model_primaryKey, $this->getCreateMessage($data), json_encode($request->all(), JSON_UNESCAPED_UNICODE));
+        });
+        return response()->ok('创建成功');
+    }
+
+    function update(Request $request, Auth $auth, $model_id) {
+        $model = $this->resourceModel()->where($this->resourceModelPrimaryKey(), $model_id)->first();
+        if (!$model) throw new ErrorCodeException(1, '非法操作,对象不存在');
+        $admin = $auth->user($this->authKey());
+        $this->updateValidate($request, $admin);
+
+        $fillables = $this->updateFillables();
+        $updates = [];
+        foreach ($request->only($fillables) as $key => $value) {
+            if ($value) $updates[$key] = $value;
+        }
+        if (count($updates) === 0) return response()->ok('未修改任何数据');
+
+        DB::transaction(function () use ($updates, $admin, $model, $updates) {
+            $model_primaryKey = $this->resourceModelPrimaryKey();
+            foreach ($updates as $key => $value) {
+                $model->$key = $value;
+            }
+            $model->save();
+            $this->logi('update', $admin->id, $model->$model_primaryKey, $this->getUpdateMessage($model), json_encode($updates, JSON_UNESCAPED_UNICODE));
         });
         return response()->ok('操作成功');
     }
