@@ -140,8 +140,7 @@ trait ResourceControllerExpand
             if (!$data) {
 
                 $fillables = $this->resourceModel()->getFillable();
-                $store_dict = array_merge($request->only($fillables), $this->storeWith());
-                $data = $this->resourceModel()->create($store_dict);
+                $data = $this->resourceModel()->create($request->only($fillables));
             }
             $this->logi('create', $admin->id, $data->$model_primaryKey, $this->getCreateMessage($data), json_encode($request->all(), JSON_UNESCAPED_UNICODE));
         });
@@ -166,9 +165,6 @@ trait ResourceControllerExpand
             if (!$update) {
                 $model_primaryKey = $this->resourceModelPrimaryKey();
                 foreach ($updates as $key => $value) {
-                    $model->$key = $value;
-                }
-                foreach ($this->updateWith() as $key => $value) {
                     $model->$key = $value;
                 }
                 $model->save();
