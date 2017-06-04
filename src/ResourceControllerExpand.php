@@ -58,9 +58,8 @@ trait ResourceControllerExpand
      * @param User $admin 管理员
      * @return mixed
      */
-    protected function storeValidate (Request $request, User $admin) {
-        return null;
-    }
+    protected function storeValidate (Request $request, User $admin) { return null; }
+    protected function storeWith () { return []; }
 
     /**
      * 修改数据时,表单验证
@@ -68,17 +67,10 @@ trait ResourceControllerExpand
      * @param User $admin 管理员
      * @return mixed
      */
-    protected function updateValidate (Request $request, User $admin) {
-        return null;
-    }
+    protected function updateValidate (Request $request, User $admin) { return null; }
+    protected function updateFillables () { return []; }
+    protected function updateWith () { return []; }
 
-    /**
-     * 可编辑的数组
-     * @return array(string)
-     */
-    protected function updateFillables () {
-        return [];
-    }
 
     // 资源控制器 - 查询,显示,编辑,删除
     // 删除 , 删除单个, 删除多个
@@ -148,7 +140,8 @@ trait ResourceControllerExpand
             $model_primaryKey = $this->resourceModelPrimaryKey();
 
             $fillables = $this->resourceModel()->getFillable();
-            $data = $this->resourceModel()->create($request->only($fillables));
+            $store_dict = array_merge($request->only($fillables), $this->storeWith());
+            $data = $this->resourceModel()->create($store_dict);
             $this->logi('create', $admin->id, $data->$model_primaryKey, $this->getCreateMessage($data), json_encode($request->all(), JSON_UNESCAPED_UNICODE));
         });
         return response()->ok('创建成功');
@@ -172,10 +165,12 @@ trait ResourceControllerExpand
             foreach ($updates as $key => $value) {
                 $model->$key = $value;
             }
+            foreach ($this->updateWith() as $key => $value) {
+                $model->$key = $value;
+            }
             $model->save();
             $this->logi('update', $admin->id, $model->$model_primaryKey, $this->getUpdateMessage($model), json_encode($updates, JSON_UNESCAPED_UNICODE));
         });
         return response()->ok('操作成功');
     }
-
 }
