@@ -2,7 +2,6 @@
 
 namespace Ckryo\Laravel\Expand;
 
-use Ckryo\Laravel\Admin\Models\User;
 use Ckryo\Laravel\Auth\Auth;
 use Ckryo\Laravel\Handler\ErrorCodeException;
 use Ckryo\Laravel\Logi\Facades\Logi;
@@ -56,21 +55,19 @@ trait ResourceControllerExpand
     /**
      * 创建数据时,表单验证
      * @param Request $request 请求数据
-     * @param User $admin 管理员
      * @return mixed
      */
-    protected function storeValidate (Request $request, User $admin) { return null; }
-    protected function storeCustom (Request $request, User $admin) { return false; }
+    protected function storeValidate (Request $request, $admin) { return null; }
+    protected function storeCustom (Request $request, $admin) { return false; }
 
     /**
      * 修改数据时,表单验证
      * @param Request $request 请求数据
-     * @param User $admin 管理员
      * @return mixed
      */
-    protected function updateValidate (Request $request, User $admin) { return null; }
+    protected function updateValidate (Request $request, $admin) { return null; }
     protected function updateFillables () { return []; }
-    protected function updateCustom (array $updates, User $admin, Model $model) { return false; }
+    protected function updateCustom (array $updates, $admin, Model $model) { return false; }
 
 
     // 资源控制器 - 查询,显示,编辑,删除
