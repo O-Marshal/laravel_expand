@@ -155,9 +155,7 @@ trait ResourceControllerExpand
 
         $fillables = $this->updateFillables();
         $updates = [];
-        foreach ($request->only($fillables) as $key => $value) {
-            if ($value) $updates[$key] = $value;
-        }
+        foreach ($request->only($fillables) as $key => $value) $updates[$key] = $value;
         if (count($updates) === 0) return response()->ok('未修改任何数据');
 
         DB::transaction(function () use ($updates, $admin, $model) {
