@@ -78,17 +78,17 @@ trait ResourceControllerExpand
         return '删除了'.$sql->count().'条'.$this->resourceDescription().'数据';
     }
 
-    protected function getDestroyMessageWithSinge (Collection $data) {
+    protected function getDestroyMessageWithSinge ($data) {
         $key = $this->resourceModelNameKey();
         return '删除了'.$this->resourceDescription().':'.$data->$key;
     }
 
-    protected function getCreateMessage (Model $data) {
+    protected function getCreateMessage ($data) {
         $key = $this->resourceModelNameKey();
         return '创建了'.$this->resourceDescription().':'.$data->$key;
     }
 
-    protected function getUpdateMessage (Model $data) {
+    protected function getUpdateMessage ($data) {
         $key = $this->resourceModelNameKey();
         return '修改了'.$this->resourceDescription().':'.$data->$key;
     }
